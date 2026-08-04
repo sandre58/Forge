@@ -1,0 +1,18 @@
+name: CI - Build, Test, Pack and Publish
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+    tags: ["v*"]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: sandre58/MyWorkflows/.github/workflows/ci.yml@main
+    with:
+      configuration: Release
+      nuget-projects: "src"
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

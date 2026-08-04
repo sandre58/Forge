@@ -1,0 +1,33 @@
+{
+  "name": "Forge",
+  "version": 1,
+  "types": ["Library", "App"],
+  "tokens": ["ProjectName", "RepositoryUrl", "Year", "ProjectDescription", "Org"],
+  "excludeFromCopy": [
+    ".git",
+    "packages",
+    "bin",
+    "obj",
+    "TestResults",
+    "artifacts",
+    "samples",
+    "docs",
+    "README.md",
+    "CONTRIBUTING.md",
+    "TEMPLATE.md",
+    "forge.manifest.json",
+    "Forge.slnx",
+    "Forge.sln",
+    "templates"
+  ],
+  "ci": {
+    "Library": "templates/ci.library.yml",
+    "App": "templates/ci.app.yml"
+  },
+  "projectTemplates": {
+    "readme": "templates/README.project.md",
+    "contributing": "templates/CONTRIBUTING.project.md",
+    "repoProps": "templates/repo.props",
+    "issueConfig": "templates/issue-config.yml"
+  }
+}

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/samples/" />
+  <Folder Name="/samples/Smoke/" />
+  <Folder Name="/samples/Smoke/src/">
+    <Project Path="samples/Smoke/src/Forge.Smoke/Forge.Smoke.csproj" />
+  </Folder>
+  <Folder Name="/samples/Smoke/tests/">
+    <Project Path="samples/Smoke/tests/Forge.Smoke.Tests/Forge.Smoke.Tests.csproj" />
+  </Folder>
+</Solution>

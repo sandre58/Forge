@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <RepositoryUrl>{{RepositoryUrl}}</RepositoryUrl>
+    <PackageProjectUrl>{{RepositoryUrl}}</PackageProjectUrl>
+    <PackageReleaseNotes>{{RepositoryUrl}}/releases</PackageReleaseNotes>
+  </PropertyGroup>
+</Project>

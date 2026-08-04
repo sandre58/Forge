@@ -1,0 +1,68 @@
+# Contributing
+
+Thank you for contributing to a project based on **Forge** (My .NET engineering template).
+
+## Development setup
+
+**Prerequisites**
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (see `global.json`)
+- Git
+
+**Build and test**
+
+```bash
+dotnet restore
+dotnet build
+dotnet test
+```
+
+Optional coverage:
+
+```bash
+dotnet test /p:CollectCoverage=true
+```
+
+## Pull requests
+
+1. Branch from `main` (`feature/…` or `bugfix/…`).
+2. Keep changes focused.
+3. Run build and tests locally.
+4. Fill the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
+
+**Commit messages:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `ci:`, `chore:`, …).
+
+## Coding standards
+
+- Target **`net10.0`** with project `LangVersion` **13.0**.
+- Nullable reference types enabled.
+- Follow [.editorconfig](.editorconfig) and [StyleCop](stylecop.json).
+- Document public APIs with XML comments when packing libraries.
+
+## Dependencies
+
+Central Package Management via [`Directory.Packages.props`](Directory.Packages.props):
+
+- Add a `PackageVersion` entry, then reference the package in the `.csproj` **without** a version.
+- Shared test packages: [`build/dependencies.props`](build/dependencies.props).
+- Analyzers: [`build/code-analysis.props`](build/code-analysis.props).
+
+## Testing
+
+- Place tests in `tests/` with project names ending in `Tests`.
+- Cover behavior you change — especially regressions.
+
+## Versioning and release
+
+| Component | Role |
+| --------- | ---- |
+| [`GitVersion.yml`](GitVersion.yml) | SemVer rules |
+| [`Directory.Build.props`](Directory.Build.props) | Maps GitVersion → `Version` |
+| [`build/package.props`](build/package.props) | NuGet `PackageVersion` |
+| [MyWorkflows CI](https://github.com/sandre58/MyWorkflows) | Build / test / pack / publish on tags |
+
+Override `RepositoryUrl` (and related package metadata) per repository — defaults in `build/package.props` use placeholders.
+
+## Security
+
+Follow [SECURITY.md](SECURITY.md) — do not open public issues for vulnerabilities.

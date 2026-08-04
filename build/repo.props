@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Generated/edited per repository. new-project.ps1 writes this file.
+    Kit default placeholders — replace on bootstrap.
+  -->
+  <PropertyGroup>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/sandre58/Forge</RepositoryUrl>
+    <PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">$(RepositoryUrl)</PackageProjectUrl>
+    <PackageReleaseNotes Condition="'$(PackageReleaseNotes)' == ''">$(RepositoryUrl)/releases</PackageReleaseNotes>
+  </PropertyGroup>
+</Project>
