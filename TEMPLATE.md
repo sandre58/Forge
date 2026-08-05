@@ -18,17 +18,21 @@ cd C:\Dev\Forge
 | `-CreateGitHub` | off | `gh repo create` + push |
 | `-OpenCursor` | off | Open the new folder in Cursor |
 | `-RepositoryUrl` | `https://github.com/{Org}/{Name}` | Written to `build/repo.props` |
+| `-Org` | `sandre58` | Used in README badges and default URL |
 
 Pass `-Verify:$false` to skip verification when calling via `powershell -File`.
 
+`-Name` must be a valid C# identifier.
+
 ## What the script does
 
-1. Copies the engineering baseline (MSBuild, Cursor rules, GitHub templates).
-2. Writes project `README.md` / `CONTRIBUTING.md` from `templates/*.project.md` (not the kit docs).
-3. Scaffolds `src/` + `tests/` and a solution file.
-4. Applies Library or App CI workflow.
-5. Initializes git on `main` with Conventional Commits template.
-6. Optionally verifies build and creates the GitHub remote.
+1. Loads kit-only excludes and template paths from `forge.manifest.json`.
+2. Copies the engineering baseline (MSBuild, Cursor rules, GitHub templates) — **not** `scripts/`.
+3. Writes project `README.md` / `CONTRIBUTING.md` / `LICENSE` / `.slnx` from `templates/` (English README with badges; solution folders for build/docs/github/cursor).
+4. Scaffolds `src/` + `tests/` with slim csproj files.
+5. Applies Library or App CI workflow.
+6. Initializes git on `main` with Conventional Commits template.
+7. Optionally verifies build and creates the GitHub remote.
 
 Kit-only paths (not copied): see `forge.manifest.json` and [docs/how-it-works.md](docs/how-it-works.md).
 

@@ -3,7 +3,7 @@
   Creates a new repository from the Forge engineering baseline.
 
 .PARAMETER Name
-  Project / folder name (e.g. MyProject).
+  Project / folder name (e.g. MyProject). Must be a valid C# identifier.
 
 .PARAMETER Type
   Library (packable NuGet) or App (non-packable).
@@ -56,6 +56,21 @@ $ErrorActionPreference = "Stop"
 
 $forgeRoot = Split-Path -Parent $PSScriptRoot
 $destination = Join-Path $TargetRoot $Name
+$manifestPath = Join-Path $forgeRoot "forge.manifest.json"
+
+if (-not (Test-Path $manifestPath)) {
+    throw "Missing forge.manifest.json at $manifestPath"
+}
+
+if ($Name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+    throw "Name '$Name' is invalid. Use a C# identifier (letters, digits, underscore; must not start with a digit)."
+}
+
+$manifest = Get-Content -Path $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$excludeNames = @($manifest.excludeFromCopy)
+if ($excludeNames.Count -eq 0) {
+    throw "forge.manifest.json excludeFromCopy is empty."
+}
 
 if ([string]::IsNullOrWhiteSpace($RepositoryUrl)) {
     $RepositoryUrl = "https://github.com/$Org/$Name"
@@ -77,24 +92,6 @@ if (Test-Path $destination) {
 }
 
 Write-Host "Creating $Type project '$Name' at $destination"
-
-$excludeNames = @(
-    ".git",
-    "packages",
-    "bin",
-    "obj",
-    "TestResults",
-    "artifacts",
-    "samples",
-    "templates",
-    "docs",
-    "README.md",
-    "CONTRIBUTING.md",
-    "TEMPLATE.md",
-    "forge.manifest.json",
-    "Forge.slnx",
-    "Forge.sln"
-)
 
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 
@@ -126,16 +123,17 @@ function Write-TokenFile([string] $sourceRelative, [string] $destRelative) {
 }
 
 # Project docs from templates (not kit README)
-Write-TokenFile "templates\README.project.md" "README.md"
-Write-TokenFile "templates\CONTRIBUTING.project.md" "CONTRIBUTING.md"
-Write-TokenFile "templates\repo.props" "build\repo.props"
-Write-TokenFile "templates\issue-config.yml" ".github\ISSUE_TEMPLATE\config.yml"
+Write-TokenFile $manifest.projectTemplates.readme "README.md"
+Write-TokenFile $manifest.projectTemplates.contributing "CONTRIBUTING.md"
+Write-TokenFile $manifest.projectTemplates.license "LICENSE"
+Write-TokenFile $manifest.projectTemplates.repoProps "build\repo.props"
+Write-TokenFile $manifest.projectTemplates.issueConfig ".github\ISSUE_TEMPLATE\config.yml"
 
 # CI by type
-$ciSource = if ($Type -eq "Library") { "templates\ci.library.yml" } else { "templates\ci.app.yml" }
-Copy-Item (Join-Path $forgeRoot $ciSource) (Join-Path $destination ".github\workflows\ci.yml") -Force
+$ciRelative = if ($Type -eq "Library") { $manifest.ci.Library } else { $manifest.ci.App }
+Copy-Item (Join-Path $forgeRoot $ciRelative) (Join-Path $destination ".github\workflows\ci.yml") -Force
 
-# Remove kit-only templates folder from child (keep decisions docs)
+# Remove kit-only templates folder from child if it was copied
 $childTemplates = Join-Path $destination "templates"
 if (Test-Path $childTemplates) {
     Remove-Item -Recurse -Force $childTemplates
@@ -151,49 +149,45 @@ New-Item -ItemType Directory -Force -Path $srcDir, $testsDir | Out-Null
 Push-Location $destination
 try {
     Write-Host "Scaffolding solution and projects..."
-    dotnet new sln -n $Name --force
-    if ($LASTEXITCODE -ne 0) { throw "dotnet new sln failed" }
-    $sln = Get-ChildItem -Filter "$Name.sln*" | Select-Object -First 1
-    if (-not $sln) { throw "Solution file was not created" }
 
     $projDir = Join-Path $srcDir $Name
     $testName = "$Name.Tests"
     $testDir = Join-Path $testsDir $testName
+    $csproj = Join-Path $projDir "$Name.csproj"
+    $testCsproj = Join-Path $testDir "$testName.csproj"
+    $slnName = "$Name.slnx"
 
     if ($Type -eq "Library") {
         dotnet new classlib -n $Name -o $projDir -f net10.0 --force
         if ($LASTEXITCODE -ne 0) { throw "dotnet new classlib failed" }
+        $cleanCsproj = @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+</Project>
+"@
+        Set-Content -Path $csproj -Value $cleanCsproj.Trim() -Encoding UTF8
     }
     else {
         dotnet new console -n $Name -o $projDir -f net10.0 --force
         if ($LASTEXITCODE -ne 0) { throw "dotnet new console failed" }
+        $cleanCsproj = @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+</Project>
+"@
+        Set-Content -Path $csproj -Value $cleanCsproj.Trim() -Encoding UTF8
     }
 
     dotnet new xunit -n $testName -o $testDir -f net10.0 --force
     if ($LASTEXITCODE -ne 0) { throw "dotnet new xunit failed" }
 
-    # Ensure packability for libraries
-    $csproj = Join-Path $projDir "$Name.csproj"
-    if ($Type -eq "Library") {
-        $xml = Get-Content $csproj -Raw -Encoding UTF8
-        if ($xml -notmatch "IsPackable") {
-            $xml = $xml -replace "</PropertyGroup>", "    <IsPackable>true</IsPackable>`r`n  </PropertyGroup>"
-            Set-Content -Path $csproj -Value $xml -Encoding UTF8
-        }
-        else {
-            $xml = $xml -replace "<IsPackable>false</IsPackable>", "<IsPackable>true</IsPackable>"
-            Set-Content -Path $csproj -Value $xml -Encoding UTF8
-        }
-    }
-
-    # Replace xunit template csproj: dependencies.props already injects test packages via CPM.
-    $testCsproj = Join-Path $testDir "$testName.csproj"
+    # Slim test csproj: Directory.Build + dependencies.props supply TFM and test packages.
     $cleanTestCsproj = @"
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
@@ -223,13 +217,14 @@ public class UnitTest1
     }
 
     # Drop stale restore outputs from the template csproj before our clean file
+    Remove-Item -Recurse -Force (Join-Path $projDir "obj") -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force (Join-Path $projDir "bin") -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force (Join-Path $testDir "obj") -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force (Join-Path $testDir "bin") -ErrorAction SilentlyContinue
 
-    dotnet sln $sln.Name add $csproj | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet sln add project failed" }
-    dotnet sln $sln.Name add $testCsproj | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet sln add test project failed" }
+    # Rich .slnx with solution folders (src, tests, build, docs, github, cursor)
+    Write-TokenFile $manifest.projectTemplates.solution $slnName
+    Get-ChildItem -Filter "$Name.sln" -ErrorAction SilentlyContinue | Remove-Item -Force
 
     if (Test-Path ".git") {
         Remove-Item -Recurse -Force ".git"
@@ -241,11 +236,11 @@ public class UnitTest1
 
     if ($Verify) {
         Write-Host "Verifying build..."
-        dotnet restore $sln.Name
+        dotnet restore $slnName
         if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
-        dotnet build $sln.Name --configuration Release --no-restore
+        dotnet build $slnName --configuration Release --no-restore
         if ($LASTEXITCODE -ne 0) { throw "dotnet build failed" }
-        $testOutput = & dotnet test $sln.Name --configuration Release --no-build --verbosity normal 2>&1 | Out-String
+        $testOutput = & dotnet test $slnName --configuration Release --no-build --verbosity normal 2>&1 | Out-String
         Write-Host $testOutput
         if ($LASTEXITCODE -ne 0) { throw "dotnet test failed" }
         if ($testOutput -match "Aucun test n'est disponible" -or $testOutput -match "No test is available") {

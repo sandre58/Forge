@@ -12,9 +12,11 @@
     "artifacts",
     "samples",
     "docs",
+    "scripts",
     "README.md",
     "CONTRIBUTING.md",
     "TEMPLATE.md",
+    "LICENSE",
     "forge.manifest.json",
     "Forge.slnx",
     "Forge.sln",
@@ -27,7 +29,9 @@
   "projectTemplates": {
     "readme": "templates/README.project.md",
     "contributing": "templates/CONTRIBUTING.project.md",
+    "license": "templates/LICENSE",
     "repoProps": "templates/repo.props",
-    "issueConfig": "templates/issue-config.yml"
+    "issueConfig": "templates/issue-config.yml",
+    "solution": "templates/solution.project.slnx"
   }
 }
